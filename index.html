@@ -1903,7 +1903,7 @@ function renderMe(){
     const S=V.t===i?stateV():{tk:null,rev:!!V.rev,b11:!!V.b11,lock:null};
     const sj=mineSel.filter(isJ).length,sp=mineSel.filter(id=>!isJ(id));
     const ok=legalPlays(h,S,V.cfg).filter(pl=>sp.every(id=>pl.includes(id))&&pl.filter(isJ).length>=sj);
-    if(ok.length){combo=new Set(ok.flat());if(ok.some(pl=>pl.some(isJ)))h.filter(isJ).forEach(id=>combo.add(id))}
+    combo=new Set(ok.flat());if(ok.some(pl=>pl.some(isJ)))h.filter(isJ).forEach(id=>combo.add(id));   // 짝이 하나도 없어도 combo는 빈 집합: 빨간 점·올라옴 없이 전부 흐림
   }
   const playable=(!combo&&V.st==='play'&&V.t===i&&V.tk&&activeV(i))?new Set(legalPlays(h,stateV(),V.cfg).flat()):null;
   for(const el of hand.children){const id=+el.dataset.id,s=sel.has(id);el.classList.toggle('newcard',newCards.has(id));el.classList.toggle('sel',s);el.classList.toggle('cur',id===curId);el.classList.toggle('match',!!(playable&&playable.has(id)));el.classList.toggle('combo',!!(combo&&!s&&combo.has(id)));el.classList.toggle('dim',!!(combo&&!s&&!combo.has(id)))}
