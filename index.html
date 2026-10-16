@@ -274,8 +274,9 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .cardinfo.warn{color:var(--gura);font-weight:600}
 .cfgsum{font-size:12.5px;color:var(--muted);margin:2px 0 0}
 .cfgsum b{color:var(--ink)}
-.stp{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed var(--line)}
-.stp-t{display:flex;flex-direction:column;gap:1px;min-width:0}
+.stp{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.stp-t{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1 1 0}
+.stp.tg{min-height:66px}
 .stp-t b{font-size:14px}
 .stp-t small{font-size:11.5px;color:var(--muted);line-height:1.35}
 .stp-c{display:flex;align-items:center;gap:6px;flex:none}
@@ -286,7 +287,7 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .stp-u{font-size:12px;color:var(--muted);min-width:22px}
 .stp .modepick{flex:none;gap:6px}
 .stp .modepick .btn{padding:7px 12px;font-size:13px;white-space:nowrap}
-@media (max-width:480px){.stp{flex-wrap:wrap}.stp-c{margin-left:auto}}
+@media (max-width:480px){.stp:not(.tg){flex-direction:column;align-items:stretch;gap:8px}.stp:not(.tg) .stp-t{flex:none}.stp:not(.tg) .stp-c,.stp:not(.tg) .modepick{justify-content:flex-end;align-self:flex-end}}
 .coderow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .pubsw{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted);padding-bottom:6px}
 .pubsw span.on{color:var(--ink)}
@@ -357,6 +358,8 @@ body.fs .info{display:none}
 .fan .card,.fan .card:hover,.fan .card.sel{position:absolute;left:50%;margin-left:-30px;bottom:var(--b,10px);pointer-events:auto;transform-origin:50% calc(100% + var(--R,600px));transform:rotate(var(--a,0rad)) translateY(var(--ly,0px)) scale(var(--sc,1));-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;transition:transform .16s ease-out}
 .fan,.fan .card{touch-action:none}
 .fan .card.match{--ly:-9px}
+.fan .card.combo{--ly:-14px;box-shadow:0 0 0 3px var(--ok),0 4px 8px -2px rgba(28,18,10,.4);z-index:1}
+.fan .card.dim{filter:grayscale(.6) brightness(.8);opacity:.55}
 body.kb .card.cur.match::after{top:-28px}
 .fan .card.sel{--ly:-30px}
 /* 마우스: 올리면 살짝 올라옴 / 터치: 꾹 누르면 크게 올라와서 손가락에 안 가림 */
@@ -365,6 +368,7 @@ body.kb .card.cur.match::after{top:-28px}
 .fan .card.sel.peek{--ly:-58px}
 @media (hover:none) and (pointer:coarse){
   .fan .card.match{--ly:-6px}
+  .fan .card.combo{--ly:-10px}
   .fan .card.sel{--ly:-16px}
   .fan .card.peek{--ly:-22px}
   .fan .card.sel.peek{--ly:-30px}
@@ -556,7 +560,6 @@ body.kb .fan .card.cur{z-index:70!important}
         <button type="button" class="btn btn-play" id="btnNickSave">저장</button>
       </div>
       <nav class="mainmenu" aria-label="로비 메뉴">
-        <button type="button" class="mm mm-practice" id="btnPractice"><b>봇과 연습</b><small>혼자서 봇과 바로 시작합니다</small></button>
         <button type="button" class="mm mm-create" data-go="create"><b>방 만들기</b></button>
         <button type="button" class="mm mm-join" data-go="join"><b>참여하기</b></button>
         <button type="button" class="mm mm-set" data-go="settings"><b>설정</b></button>
@@ -1884,8 +1887,16 @@ function renderMe(){
   const key=h.join(',');
   if(hand.dataset.key!==key){hand.innerHTML=h.map(id=>cardHTML(id,'')).join('');hand.dataset.key=key}
   // 내 차례에 앞사람 카드를 이어 낼 땐, 낼 수 있는 조합에 들어가는 카드에 빨간 점
-  const playable=(V.st==='play'&&V.t===i&&V.tk&&activeV(i))?new Set(legalPlays(h,stateV(),V.cfg).flat()):null;
-  for(const el of hand.children){const id=+el.dataset.id;el.classList.toggle('newcard',newCards.has(id));el.classList.toggle('sel',sel.has(id));el.classList.toggle('cur',id===curId);el.classList.toggle('match',!!(playable&&playable.has(id)))}
+  // 카드를 골라 두면: 그 카드와 함께 낼 수 있는 카드를 초록 테두리로 강조하고 나머지는 흐리게 (내 차례가 아니면 앞 조합과 상관없이 짝만 보여 줌)
+  const mineSel=selIds();let combo=null;
+  if(mineSel.length&&V.st==='play'&&activeV(i)){
+    const S=V.t===i?stateV():{tk:null,rev:!!V.rev,b11:!!V.b11,lock:null};
+    const sj=mineSel.filter(isJ).length,sp=mineSel.filter(id=>!isJ(id));
+    const ok=legalPlays(h,S,V.cfg).filter(pl=>sp.every(id=>pl.includes(id))&&pl.filter(isJ).length>=sj);
+    if(ok.length){combo=new Set(ok.flat());if(ok.some(pl=>pl.some(isJ)))h.filter(isJ).forEach(id=>combo.add(id))}
+  }
+  const playable=(!combo&&V.st==='play'&&V.t===i&&V.tk&&activeV(i))?new Set(legalPlays(h,stateV(),V.cfg).flat()):null;
+  for(const el of hand.children){const id=+el.dataset.id,s=sel.has(id);el.classList.toggle('newcard',newCards.has(id));el.classList.toggle('sel',s);el.classList.toggle('cur',id===curId);el.classList.toggle('match',!!(playable&&playable.has(id)));el.classList.toggle('combo',!!(combo&&!s&&combo.has(id)));el.classList.toggle('dim',!!(combo&&!s&&!combo.has(id)))}
   layoutFan();
   renderButtons();
 }
@@ -2005,7 +2016,7 @@ function renderPanel(){
       const c=V.cfg,minMax=Math.max(2,V.ps.length);
       const total=52+(+c.jokers||0),nowN=Math.max(2,V.ps.length),perNow=Math.floor(total/nowN),perFull=Math.floor(total/Math.max(2,+c.max));
       const cardInfo=`<p class="cardinfo">카드 ${total}장 · 지금 ${nowN}명이면 1인당 약 ${perNow}장${+c.max>nowN?` · ${+c.max}명이 다 차면 약 ${perFull}장`:''}${+c.max>=7?'<br>7~8명 방은 제한 시간 20초 정도로 짧게 하면 덜 지루합니다.':''}</p>`;
-      const rules=RULE_SET.map(d=>{const on=!!(+c[d.k]);return `<div class="stp"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="sw${on?'':' right'}" role="switch" aria-checked="${on}" aria-label="${d.label}" data-act="tog:${d.k}"><i></i></button></div></div>`}).join('');
+      const rules=RULE_SET.map(d=>{const on=!!(+c[d.k]);return `<div class="stp tg"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="sw${on?'':' right'}" role="switch" aria-checked="${on}" aria-label="${d.label}" data-act="tog:${d.k}"><i></i></button></div></div>`}).join('');
       const rows=ROOM_SET.map(d=>{const v=+(c[d.k]??cfg[d.k]),lo=d.k==='max'?minMax:d.k==='spec'?(Array.isArray(V.sv)?V.sv.length:0):d.lo;
         return `<div class="stp"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="stp-b" data-act="dec:${d.k}" aria-label="${d.label} 줄이기"${v<=lo?' disabled':''}>−</button><input class="txt stp-v" id="st_${d.k}" type="number" inputmode="numeric" min="${lo}" max="${d.hi}" step="${d.step}" value="${v}" aria-label="${d.label}"><span class="stp-u">${d.unit}</span><button type="button" class="stp-b" data-act="inc:${d.k}" aria-label="${d.label} 늘리기"${v>=d.hi?' disabled':''}>+</button></div></div>`}).join('');
       showPanel(`<div class="vhead"><button type="button" class="back" data-act="setclose" aria-label="대기실로">←</button><h2>방 설정</h2></div>
@@ -2286,7 +2297,6 @@ function startPractice(){
   hostAddBot(true);hostAddBot(true);hostAddBot(true);
   enterRoom();mark();
 }
-$('#btnPractice').addEventListener('click',startPractice);
 $('#btnCreate').addEventListener('click',createRoom);
 $('#btnJoinCode').addEventListener('click',()=>{const c=$('#inCode').value.trim().toLowerCase();if(/^[a-z0-9]{4}$/.test(c))joinRoom(c);else setNote('#netNote','방 코드는 영문과 숫자 4자리입니다.',true)});
 $('#inCode').addEventListener('keydown',e=>{if(e.key==='Enter')$('#btnJoinCode').click()});
