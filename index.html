@@ -13,6 +13,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="대부호">
 <meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon-180.png">
 <meta name="description" content="계급이 오가는 트럼프 카드게임">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2132,6 +2135,7 @@ function setFsLabel(){
 }
 /* 홈 화면 앱으로 실행하면 처음부터 테이블이 화면을 채우게 */
 try{if(matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches||navigator.standalone)document.body.classList.add('fs','app')}catch(e){}
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 setFsLabel();
 $('#btnFs').addEventListener('click',()=>{
   const on=!document.body.classList.contains('fs');
