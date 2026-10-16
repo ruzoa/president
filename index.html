@@ -364,8 +364,8 @@ body.fs .info{display:none}
 .fan,.fan .card{touch-action:none}
 .fan .card.match{--ly:-9px}
 .fan .card.combo{--ly:-14px;z-index:1}
-.fan .card.dim{filter:grayscale(.6) brightness(.8);opacity:.55}
-.fan .card.dim,.fan .card.dim:hover,.fan .card.dim.peek{--ly:0px}
+.fan .card.faded{filter:grayscale(.6) brightness(.8);opacity:.55}
+.fan .card.faded,.fan .card.faded:hover,.fan .card.faded.peek{--ly:0px}
 body.kb .card.cur.match::after{top:-28px}
 .fan .card.sel{--ly:-30px}
 /* 마우스: 올리면 살짝 올라옴 / 터치: 꾹 누르면 크게 올라와서 손가락에 안 가림 */
@@ -1909,16 +1909,16 @@ function renderMe(){
   const key=h.join(',');
   if(hand.dataset.key!==key){hand.innerHTML=h.map(id=>cardHTML(id,'')).join('');hand.dataset.key=key}
   // 내 차례에 앞사람 카드를 이어 낼 땐, 낼 수 있는 조합에 들어가는 카드에 빨간 점
-  // 카드를 골라 두면: 그 카드와 함께 낼 수 있는 카드를 위로 올라와 강조하고 나머지는 흐리게 (내 차례가 아니면 앞 조합과 상관없이 짝만 보여 줌)
+  // 카드를 골라 두면: 그 카드와 함께 낼 수 있는 카드만 빨간 점과 함께 올라오고, 나머지는 흐리게 (class 이름 dim은 화면 어둡게 하는 #dim과 겹치므로 faded) (내 차례가 아니면 앞 조합과 상관없이 짝만 보여 줌)
   const mineSel=selIds();let combo=null;
   if(mineSel.length&&V.st==='play'&&activeV(i)){
     const S=V.t===i?stateV():{tk:null,rev:!!V.rev,b11:!!V.b11,lock:null};
     const sj=mineSel.filter(isJ).length,sp=mineSel.filter(id=>!isJ(id));
     const ok=legalPlays(h,S,V.cfg).filter(pl=>sp.every(id=>pl.includes(id))&&pl.filter(isJ).length>=sj);
-    combo=new Set(ok.flat());if(ok.some(pl=>pl.some(isJ)))h.filter(isJ).forEach(id=>combo.add(id));   // 짝이 하나도 없어도 combo는 빈 집합: 빨간 점·올라옴 없이 전부 흐림
+    combo=new Set(ok.flat());if(ok.some(pl=>pl.some(isJ)))h.filter(isJ).forEach(id=>combo.add(id));   // 짝이 하나도 없으면 빈 집합: 나머지가 전부 흐려짐
   }
   const playable=(!combo&&V.st==='play'&&V.t===i&&V.tk&&activeV(i))?new Set(legalPlays(h,stateV(),V.cfg).flat()):null;
-  for(const el of hand.children){const id=+el.dataset.id,s=sel.has(id);el.classList.toggle('newcard',newCards.has(id));el.classList.toggle('sel',s);el.classList.toggle('cur',id===curId);el.classList.toggle('match',!!(playable&&playable.has(id)));el.classList.toggle('combo',!!(combo&&!s&&combo.has(id)));el.classList.toggle('dim',!!(combo&&!s&&!combo.has(id)))}
+  for(const el of hand.children){const id=+el.dataset.id,s=sel.has(id);el.classList.toggle('newcard',newCards.has(id));el.classList.toggle('sel',s);el.classList.toggle('cur',id===curId);el.classList.toggle('match',combo?(!s&&combo.has(id)):!!(playable&&playable.has(id)));el.classList.toggle('combo',!!(combo&&!s&&combo.has(id)));el.classList.toggle('faded',!!(combo&&!s&&!combo.has(id)))}
   layoutFan();
   renderButtons();
 }
