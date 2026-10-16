@@ -1934,9 +1934,13 @@ function renderMe(){
     const S=V.t===i?stateV():{tk:null,rev:!!V.rev,b11:!!V.b11,lock:null};
     const sj=mineSel.filter(isJ).length,sp=mineSel.filter(id=>!isJ(id));
     const ok=legalPlays(h,S,V.cfg).filter(pl=>sp.every(id=>pl.includes(id))&&pl.filter(isJ).length>=sj);
-    combo=new Set(ok.flat());if(ok.some(pl=>pl.some(isJ)))h.filter(isJ).forEach(id=>combo.add(id));   // 짝이 하나도 없으면 빈 집합: 나머지가 전부 흐려짐
+    combo=new Set(ok.flat().filter(id=>!isJ(id)));if(ok.some(pl=>pl.filter(isJ).length>sj))h.filter(isJ).forEach(id=>combo.add(id));   // 고른 것보다 조커가 더 들어가는 조합이 있을 때만 다른 조커도 표시;   // 짝이 하나도 없으면 빈 집합: 나머지가 전부 흐려짐
   }
-  const playable=(!combo&&V.st==='play'&&V.t===i&&V.tk&&activeV(i))?new Set(legalPlays(h,stateV(),V.cfg).flat()):null;
+  let playable=null;
+  if(!combo&&V.st==='play'&&V.t===i&&V.tk&&activeV(i)){
+    const pl=legalPlays(h,stateV(),V.cfg);playable=new Set(pl.flat());
+    if(pl.some(m=>m.some(isJ)))h.filter(isJ).forEach(id=>playable.add(id));   // 조합 목록에는 첫 조커만 들어가므로, 조커는 모두 같이 표시
+  }
   for(const el of hand.children){const id=+el.dataset.id,s=sel.has(id);el.classList.toggle('newcard',newCards.has(id));el.classList.toggle('sel',s);el.classList.toggle('cur',id===curId);el.classList.toggle('match',combo?(!s&&combo.has(id)):!!(playable&&playable.has(id)));el.classList.toggle('combo',!!(combo&&!s&&combo.has(id)));el.classList.toggle('faded',!!(combo&&!s&&!combo.has(id)))}
   layoutFan();
   renderButtons();
