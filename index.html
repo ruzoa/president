@@ -128,6 +128,11 @@ body.no3d .seat.on .ring{display:block}
 .act-play.ready{box-shadow:0 4px 0 var(--edge),0 0 0 4px rgba(242,182,50,.35)}
 .act-gura.ready{animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{50%{box-shadow:0 4px 0 var(--gura-edge),0 0 0 8px rgba(204,58,46,.25)}}
+.field2d{position:absolute;left:50%;top:32%;transform:translate(-50%,-50%);z-index:5;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:4px}
+.field2d .f2-cards{display:flex;justify-content:center;width:max-content}
+.field2d .card+.card{margin-left:-26px}
+.field2d .card{transform:none!important;cursor:default}
+.field2d .f2-n{font-size:12px;font-weight:600;background:rgba(255,250,240,.92);border:1px solid var(--line-strong);border-radius:99px;padding:1px 10px}
 .verdict{position:absolute;left:50%;top:8px;z-index:9;transform:translateX(-50%);text-align:center;pointer-events:none;width:min(92%,460px);display:flex;flex-direction:column;gap:5px;align-items:center}
 .verdict .vw{font-size:14px;font-weight:600;box-shadow:0 3px 10px -4px rgba(28,18,10,.4);background:rgba(255,250,240,.95);border:1.5px solid var(--line-strong);padding:3px 12px;border-radius:99px}
 .verdict .vw b{color:var(--amber)}
@@ -517,6 +522,7 @@ body.kb .fan .card.cur{z-index:70!important}
     <button class="fsbtn snd" id="btnSound" type="button" aria-label="소리 끄기" title="소리 끄기"></button>
     <button class="fsbtn" id="btnFs" type="button" aria-label="전체화면" title="전체화면"></button>
     <div class="verdict" id="verdict" hidden></div>
+    <div class="field2d" id="field2d" hidden aria-live="polite"></div>
     <div class="actions" id="actions" hidden>
       <button class="act act-pass" id="btnPass" type="button" disabled>패스<small>P</small></button>
       <button class="act act-play" id="btnPlay" type="button" disabled><span id="playMain">내기</span><small id="playSub">Enter</small></button>
@@ -543,7 +549,7 @@ body.kb .fan .card.cur{z-index:70!important}
         <li><b>진행</b> : 앞사람과 <b>같은 장수</b>로 더 강한 카드를 내거나 <b>패스</b>합니다</li>
         <li><b>판 끝</b> : 모두가 연달아 패스하면 판이 끝나고, 마지막에 낸 사람이 새로 시작합니다</li>
         <li><b>특수 규칙</b> : 방 설정에서 켜고 끌 수 있습니다. 8 끊기, 혁명(같은 숫자 4장), 계단(같은 무늬 연속 3장), 묶기, 11 백</li>
-        <li><b>다음 판</b> : 대빈민은 가장 강한 카드를 대부호에게 주고 약한 카드를 돌려받습니다 (4명 이상이면 2장, 부호·빈민은 1장)</li>
+        <li><b>다음 판</b> : 대빈민은 가장 강한 카드를 대부호에게 주고 약한 카드를 돌려받습니다 (4명 이상이면 2장, 부호·빈민은 1장). 방 설정에서 끌 수 있습니다</li>
         <li><b>조커</b> : 모든 숫자로 쓸 수 있는 와일드 카드이고, 혼자 내면 가장 강합니다</li>
       </ol>
     </div>
@@ -575,7 +581,7 @@ body.kb .fan .card.cur{z-index:70!important}
       <div class="field"><span class="fl">게임 모드</span><div class="seg modes" id="segFast"></div></div>
       <div class="field"><label for="inTitle">방 이름</label><input class="txt" id="inTitle" maxlength="20" autocomplete="off"></div>
       <div class="field"><span class="fl">공개 설정</span><small>공개 방은 누구나 '랜덤 방 참여'로 들어올 수 있습니다</small><div class="seg pubseg" id="segPub"></div></div>
-      <p class="note">인원·별카드·자음 수·시간은 방을 만든 뒤 대기실의 <b>방 설정</b>에서 바꿀 수 있습니다.</p>
+      <p class="note">인원·조커·제한 시간·규칙은 방을 만든 뒤 대기실의 <b>방 설정</b>에서 바꿀 수 있습니다.</p>
       <div class="row">
         <button class="btn btn-red wide" id="btnCreate" type="button">방 만들기</button>
       </div>
@@ -807,7 +813,7 @@ function hostStart(){
   const deck=shuffle([...Array(52).keys(),...Array(H.cfg.jokers).fill(0).map((_,k)=>JOKER_BASE+k)]),per=Math.floor(deck.length/n);
   H.players.forEach(p=>p.hand=deck.splice(0,per));
   const order=shuffle([...Array(n).keys()]);let k=0;while(deck.length)H.players[order[k++]].hand.push(deck.pop());
-  Object.assign(H,{phase:'play',log:[],seatNote:{},tk:null,tkP:-1,lock:null,rev:false,b11:false,passes:0,rankNext:1,rankBottom:n,graceUntil:0,roundNo:(H.roundNo||0)+1});
+  Object.assign(H,{phase:'play',log:[],seatNote:{},lp:null,tk:null,tkP:-1,lock:null,rev:false,b11:false,passes:0,rankNext:1,rankBottom:n,graceUntil:0,roundNo:(H.roundNo||0)+1});
   addLog(`${n}명 ${H.roundNo}번째 판 시작${H.cfg.jokers?` (조커 ${H.cfg.jokers}장)`:''}.`,'sys');
   let first=H.players.findIndex(p=>p.hand.includes(0));   // ♦3을 가진 사람부터
   const ex=doExchange();if(ex!=null)first=ex;             // 교환이 있었다면 대빈민부터
@@ -828,7 +834,7 @@ function doExchange(){
     const g=H.players[idx[lo]],t=H.players[idx[hi]];
     g.hand.sort(cmpCard);t.hand.sort(cmpCard);
     const give=g.hand.splice(g.hand.length-k,k),back=t.hand.splice(0,k);
-    t.hand.push(...give);g.hand.push(...back);
+    t.hand.push(...give);g.hand.push(...back);t.got=give.slice();g.got=back.slice();
     addLog(`교환: ${g.name} → ${t.name} 강한 카드 ${k}장, ${t.name} → ${g.name} 약한 카드 ${k}장`,'sys');
   }
   return idx[n-1];
@@ -866,6 +872,7 @@ function doPlay(i,ids){
     H.lock=c.suits.slice();addLog(`묶기! ${c.suits.map(s=>SUITS[s]).join('')} 무늬만 낼 수 있습니다.`,'sp');
   }
   H.tk={...c,ids:ids.slice()};H.tkP=i;H.passes=0;H.seatNote={};
+  H.lp={p:i,ids:ids.slice(),sq:(H.lp?H.lp.sq:0)+1};
   addLog(`${p.name}: ${comboStr(ids)}`);
   let cut=false;
   if(c.ty==='set'&&c.k!==JOKER_KEY){
@@ -897,6 +904,7 @@ function finish(i){
 function doSurrender(i){
   if(H.phase!=='play'||i<0||!isActive(i))return;
   const p=H.players[i];
+  if(H.seatNote[i]){H.passes=Math.max(0,H.passes-1);delete H.seatNote[i]}   // 이미 패스했던 사람이 항복하면 그 패스는 빼야 남은 사람이 모두 대답하기 전에 판이 끝나지 않음
   p.hand=[];p.finished=true;p.surrendered=true;p.rank=H.rankBottom--;
   addLog(`${p.name} 항복! ${p.rank}위`,'lie');
   const act=H.players.filter(x=>!x.finished);
@@ -1024,9 +1032,10 @@ function snapFor(you){
   if(H.specs&&H.specs.length)s.sv=H.specs.map(x=>x.name);
   s.mc=H.members.length;
   if(H.phase==='wait'){s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0,lv:m.bot?(m.lv??1):undefined}));return s}
-  s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=1;if(p.away)o.aw=1;if(i===you)o.h=p.hand.slice();return o});
+  s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=1;if(p.away)o.aw=1;if(i===you){o.h=p.hand.slice();if(p.got)o.g=p.got.slice()}return o});
   s.t=H.turn;s.gr=0;s.dl=Math.max(0,Math.round(H.deadline-t));
   s.tk=H.tk?{p:H.tkP,ids:H.tk.ids.slice(),ty:H.tk.ty,n:H.tk.n,k:H.tk.k,hi:H.tk.hi,suits:H.tk.suits.slice(),jk:H.tk.jk}:null;
+  s.lp=H.lp?{p:H.lp.p,ids:H.lp.ids.slice(),sq:H.lp.sq}:null;
   s.rev=H.rev?1:0;s.b11=H.b11?1:0;s.lk=H.lock?H.lock.slice():null;s.rd=H.roundNo||1;
   return s;
 }
@@ -1471,6 +1480,9 @@ function applyView(s){
   V={...s,graceAt:t+(+s.gr||0),deadAt:t+(+s.dl||0)};
   const mine=myHand();const hs=new Set(mine);for(const id of [...sel])if(!hs.has(id))sel.delete(id);
   render();sync3D(V,PV);cues(V,PV);showNewEmotes(V,PV);
+  // 새 판에 계급 카드 교환으로 받은 카드는 노란 테두리로 표시 (마우스를 올리거나 눌러 보면 사라짐)
+  const mi=myIdx();
+  if(V.st==='play'&&mi>=0&&Array.isArray(V.ps[mi].g)&&V.ps[mi].g.length&&(!PV||PV.st!=='play'||PV.rd!==V.rd))showTaken(V.ps[mi].g);
 }
 let newCards=new Set();
 let emoSeen=-1,emoMuted=new Set(),emoOff=store('president-emo-off')==='1';
@@ -2301,12 +2313,6 @@ $('#btnGiveUp').addEventListener('click',()=>{
   if(!giveUpArmed){giveUpArmed=true;const b=$('#btnGiveUp');b.classList.add('arm');b.querySelector('span').textContent='한 번 더';giveUpTimer=setTimeout(disarmGiveUp,3000);return}
   disarmGiveUp();closeMenu();sendAct({t:'surrender'});
 });
-function startPractice(){
-  saveNick();mode='host';V=null;PV=null;sel.clear();
-  hostNew(false,'',myNick()+'의 연습');
-  hostAddBot(true);hostAddBot(true);hostAddBot(true);
-  enterRoom();mark();
-}
 $('#btnCreate').addEventListener('click',createRoom);
 $('#btnJoinCode').addEventListener('click',()=>{const c=$('#inCode').value.trim().toLowerCase();if(/^[a-z0-9]{4}$/.test(c))joinRoom(c);else setNote('#netNote','방 코드는 영문과 숫자 4자리입니다.',true)});
 $('#inCode').addEventListener('keydown',e=>{if(e.key==='Enter')$('#btnJoinCode').click()});
@@ -2400,7 +2406,7 @@ function backTex(){return canvasTex(256,372,(g,w,h)=>{
   g.fillStyle='#fffcf5';g.beginPath();g.arc(w/2,h/2,92,0,7);g.fill();
   g.strokeStyle='#cc3a2e';g.lineWidth=5;g.beginPath();g.arc(w/2,h/2,82,0,7);g.stroke();
   g.save();g.translate(w/2,h/2);g.rotate(-Math.PI/5);
-  g.fillStyle='#cc3a2e';g.font='62px "Jua", "Black Han Sans", sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('구라!',0,4);
+  g.fillStyle='#cc3a2e';g.font='50px "Jua", "Black Han Sans", sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('대부호',0,4);
   g.restore();
 })}
 function drawFace(g,w,h,id){
@@ -2664,7 +2670,27 @@ function updBubbles(t){
     b.sp.position.y+= (Math.sin(a/300)*.0015);
   }
 }
+/* 테이블 가운데에 보일 조합: 깔린 조합, 없으면 방금 낸 카드(8 끊기·마지막 카드로 판이 바로 끝난 경우)를 1.5초 */
+function fieldCombo(v){
+  if(!v||!v.ps||v.st!=='play')return null;
+  const lp=v.lp;
+  if(lp&&lp.sq!==T.lpSq){T.lpSq=lp.sq;T.lpAt=clock()}
+  if(v.tk)return v.tk;
+  if(!lp)return null;
+  const left=1500-(clock()-T.lpAt);if(left<=0)return null;
+  clearTimeout(T.lpTimer);T.lpTimer=setTimeout(()=>{if(V)sync3D(V,PV)},left+30);
+  return lp;
+}
+function field2D(fk){
+  const el=$('#field2d');if(!el)return;
+  const key=!T.ok&&fk?fk.p+':'+fk.ids.join(','):'';
+  if(el.dataset.k===key)return;el.dataset.k=key;
+  if(!key){el.hidden=true;el.innerHTML='';return}
+  const nm=V&&V.ps&&V.ps[fk.p]?V.ps[fk.p].n:'';
+  el.innerHTML=`<div class="f2-cards">${fk.ids.slice().sort(cmpCard).map(id=>cardHTML(id,'')).join('')}</div><div class="f2-n">${esc(nm)}</div>`;el.hidden=false;
+}
 function sync3D(v,pv){
+  const fk=fieldCombo(v);field2D(fk);
   if(!T.ok)return;
   if(!v||!v.ps||v.st==='wait'){
     T.field.forEach(killCard);T.field=[];T.fieldKey='';for(const arr of T.stacks.values())arr.forEach(killCard);T.stacks.clear();T.ring.visible=false;return;
@@ -2680,12 +2706,12 @@ function sync3D(v,pv){
     arr.forEach((c,k)=>{c.userData.p.set(sp.x,.03+k*.016,sp.z);c.userData.ry=seatAngle(i);c.userData.rx=Math.PI/2;c.userData.s=.8});
   });
   // 테이블 가운데에는 지금 깔린 조합만 앞면으로 펼침. 새로 나오면 이전 카드는 치워짐
-  const key=v.tk?v.tk.p+':'+v.tk.ids.join(','):'';
+  const key=fk?fk.p+':'+fk.ids.join(','):'';
   if(key!==T.fieldKey){
     for(const c of T.field){const u=c.userData;u.p.set(u.p.x*.3,-.6,-7.5);u.s=.6;u.die=true}
     T.field=[];
-    if(v.tk){
-      const ids=v.tk.ids,n=ids.length,from=v.tk.p===me?nearMe():seatPos(v.tk.p,3.9);from.y=.8;
+    if(fk){
+      const ids=fk.ids,n=ids.length,from=fk.p===me?nearMe():seatPos(fk.p,3.9);from.y=.8;
       const gap=Math.min(.62,3.8/Math.max(1,n-1));
       ids.forEach((id,j)=>{
         const c=makeCard(from.clone(),-Math.PI/2,0,1);

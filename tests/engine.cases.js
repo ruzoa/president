@@ -55,6 +55,30 @@ for(let it=0;it<300;it++){
     if(ok!==got)fail(`legal count ${got} vs brute ${ok} n=${n}`);
   }
 }
+// 패스했던 사람이 항복해도, 남은 사람이 모두 대답하기 전엔 판이 끝나지 않음
+Object.assign(cfg,{fast:0,jokers:0,swap:0,r8:0,rev:0,run:0,lock:0,b11:0});
+hostNew(false,'t','t');H.members=[0,1,2,3].map(i=>({name:'p'+i,bot:false,conn:null,host:i===0}));
+hostStart();
+H.players[0].hand=[id(4,0),id(0,1)];H.players[1].hand=[id(0,2),id(1,0)];H.players[2].hand=[id(1,1),id(2,2)];H.players[3].hand=[id(9,0),id(2,3)];
+newTrick(0);doPlay(0,[id(4,0)]);doPass(1);doPass(2);
+if(H.turn!==3)fail('setup turn');
+doSurrender(1);
+if(!H.tk||H.turn!==3)fail('surrender after pass ended trick early');
+doPass(3);
+if(H.tk||H.turn!==0)fail('trick should end after last pass, leader p0');
+// 8 끊기: 테이블 표시용 마지막 카드(lp)는 남아 있어야 함
+Object.assign(cfg,{r8:1});
+hostNew(false,'t','t');H.members=[0,1,2].map(i=>({name:'p'+i,bot:false,conn:null,host:i===0}));
+hostStart();H.players[0].hand=[id(5,0),id(0,1)];newTrick(0);doPlay(0,[id(5,0)]);
+if(H.tk||H.turn!==0||!H.lp||H.lp.ids[0]!==id(5,0))fail('8 cut lp');
+// 교환: 받은 카드 기록
+Object.assign(cfg,{swap:1});
+hostNew(false,'t','t');H.members=[0,1,2,3].map(i=>({name:'p'+i,bot:true,conn:null,host:i===0}));
+H.lastRanks={p0:1,p1:2,p2:3,p3:4};hostStart();
+{const g0=H.players[0].got,g3=H.players[3].got;
+ if(!g0||g0.length!==2||!g3||g3.length!==2)fail('swap got');
+ else if(!g0.every(x=>H.players[0].hand.includes(x))||!g3.every(x=>H.players[3].hand.includes(x)))fail('swap got not in hand');
+ if(H.turn!==3)fail('daihinmin leads after swap');}
 // --- 봇 자동 대전 ---
 function simulate(n,cfgO,lvs){
   Object.assign(cfg,cfgO);
