@@ -78,7 +78,24 @@ H.lastRanks={p0:1,p1:2,p2:3,p3:4};hostStart();
 {const g0=H.players[0].got,g3=H.players[3].got;
  if(!g0||g0.length!==2||!g3||g3.length!==2)fail('swap got');
  else if(!g0.every(x=>H.players[0].hand.includes(x))||!g3.every(x=>H.players[3].hand.includes(x)))fail('swap got not in hand');
- if(H.turn!==3)fail('daihinmin leads after swap');}
+ if(H.turn!==0)fail('daifugo leads after swap');}
+// 계급 이어가기: 나간 순서대로 새로 온 사람이 그 계급을 이어받음
+hostNew(false,'t','t');H.members=[0,1,2,3].map(i=>({name:'p'+i,bot:true,conn:null,host:i===0}));
+H.lastRanks={p0:1,p1:2,p2:3,p3:4};H.lastN=4;syncRanks();
+H.members=H.members.filter(m=>m.name!=='p3');syncRanks();      // 대빈민 먼저 나감
+H.members=H.members.filter(m=>m.name!=='p0');syncRanks();      // 그다음 대부호
+H.members.push({name:'n1',bot:true,conn:null,host:false});syncRanks();
+H.members.push({name:'n2',bot:true,conn:null,host:false});syncRanks();
+if(H.lastRanks.n1!==4||H.lastRanks.n2!==1)fail('vacancy fifo '+JSON.stringify(H.lastRanks));
+hostStart();
+{const pr=Object.fromEntries(H.players.map(p=>[p.name,p.pr]));if(pr.n2!==1||pr.n1!==4||pr.p1!==2||pr.p2!==3)fail('carry pr '+JSON.stringify(pr));
+ if(H.players[H.turn].name!=='n2')fail('daifugo n2 leads');}
+// 계급 없는 사람이 늘면 가운데(평민 자리)
+H.lastRanks={a:1,b:2,c:3};
+{const o=rankOrder(['a','b','c','x']);if(o.a!==1||o.x!==3||o.c!==4)fail('newcomer middle '+JSON.stringify(o))}
+// 초기화
+H.lastRanks=null;{const o=rankOrder(['a','b']);if(o!==null)fail('reset')}
+
 // --- 봇 자동 대전 ---
 function simulate(n,cfgO,lvs){
   Object.assign(cfg,cfgO);
